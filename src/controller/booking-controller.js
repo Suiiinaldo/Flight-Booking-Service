@@ -15,7 +15,6 @@ async function createBooking(req,res){
             userId: req.body.userId,
             noOfSeats: req.body.noOfSeats,
         });
-        console.log(response);
         SuccessResponse.data = response;
         return res
                 .status(StatusCodes.OK)
