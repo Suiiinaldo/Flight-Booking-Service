@@ -34,7 +34,10 @@ class BookingRepository extends CrudRepository{
     }
 
     async cancelOldBookings(timestamp){
-        console.log("In Repo");
+        /*TODO: The flights which are getting cancelled due to cron job are not freeing up 
+                the seats in the flights table, i.e, the cancelled flights should leave their 
+                allocated seats and in table the seats should increase by the corresponding noOfSeats.
+        */
         const response = await Booking.update({status: CANCELLED},{
             where: {
                 [Op.and]:[

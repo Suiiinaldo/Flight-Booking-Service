@@ -20,7 +20,6 @@ async function createBooking(data){
         }
         const totalBillingAmount = data.noOfSeats * flightData.price;
         const bookingPayload = {...data, totalCost: totalBillingAmount};
-        // console.log(bookingPayload);
         const booking = await bookingRepository.create(bookingPayload,transaction);
         await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${data.flightId}/seats`, {
             seats: data.noOfSeats,
@@ -37,15 +36,12 @@ async function createBooking(data){
 async function makePayment(data){
     const transaction = await db.sequelize.transaction();
     try {
-        // console.log("Inside Service");
         const bookingDetails = await bookingRepository.get(data.userId,transaction);
-        // console.log(bookingDetails);
         if(bookingDetails.status == CANCELLED){
             throw new AppError("The booking has expired", StatusCodes.BAD_REQUEST);
         }
         const bookingTime = new Date(bookingDetails.createdAt);
         const currentTime = new Date();
-        // console.log(bookingTime," ",currentTime);
         if(currentTime - bookingTime > 300000){
             await cancelBooking(data.bookingId);
             throw new AppError("The booking has expired (Time)", StatusCodes.BAD_REQUEST);
@@ -72,7 +68,6 @@ async function cancelBooking(bookingId){
     const transaction = db.sequelize.transaction();
     try {
         const bookingDetails = await bookingRepository.get(bookingId,transaction);
-        // console.log(bookingDetails);
         if(bookingDetails.status == CANCELLED){
             await transaction.commit();
             return true;
@@ -91,7 +86,6 @@ async function cancelBooking(bookingId){
 
 async function cancelOldBookings(){
     try {
-        console.log("Inside Service");
         const time = new Date(Date.now() - 1000 * 300); //time  = 5 minutes, 1 second = 1000 milliseconds;
         const response = bookingRepository.cancelOldBookings(time);
         return response;
