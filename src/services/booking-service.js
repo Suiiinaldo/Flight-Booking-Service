@@ -37,18 +37,18 @@ async function createBooking(data){
 async function makePayment(data){
     const transaction = await db.sequelize.transaction();
     try {
-        console.log("Inside Service");
+        // console.log("Inside Service");
         const bookingDetails = await bookingRepository.get(data.userId,transaction);
-        console.log(bookingDetails);
+        // console.log(bookingDetails);
         if(bookingDetails.status == CANCELLED){
             throw new AppError("The booking has expired", StatusCodes.BAD_REQUEST);
         }
         const bookingTime = new Date(bookingDetails.createdAt);
         const currentTime = new Date();
-        console.log(bookingTime," ",currentTime);
+        // console.log(bookingTime," ",currentTime);
         if(currentTime - bookingTime > 300000){
-            await bookingRepository.update(data.bookingId, { status: CANCELLED}, { transaction: transaction});
-            throw new AppError("The booking has expired ", StatusCodes.BAD_REQUEST);
+            await cancelBooking(data.bookingId);
+            throw new AppError("The booking has expired (Time)", StatusCodes.BAD_REQUEST);
         }
         if(bookingDetails.totalCost != data.totalCost){
             throw new AppError("The amount of payment does not match", StatusCodes.BAD_REQUEST);
@@ -61,6 +61,27 @@ async function makePayment(data){
         //Now we assume the booking is done
 
         await bookingRepository.update(data.bookingId, { status: BOOKED}, { transaction: transaction});
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+}
+
+async function cancelBooking(bookingId){
+    const transaction = db.sequelize.transaction();
+    try {
+        const bookingDetails = await bookingRepository.get(bookingId,transaction);
+        // console.log(bookingDetails);
+        if(bookingDetails.status == CANCELLED){
+            await transaction.commit();
+            return true;
+        }
+        await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${bookingDetails.flightId}/seats`,{
+            seats: bookingDetails.noOfSeats,
+            dec: 0,
+        });
+        await bookingRepository.update(bookingId, { status: CANCELLED}, { transaction: transaction});
         await transaction.commit();
     } catch (error) {
         await transaction.rollback();

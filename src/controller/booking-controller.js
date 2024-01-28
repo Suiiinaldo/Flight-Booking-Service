@@ -29,7 +29,7 @@ async function createBooking(req,res){
 
 async function makePayment(req,res){
     try {
-        console.log("Inside controller")
+        // console.log("Inside controller")
         const response = await BookingService.makePayment({
             totalCost: req.body.totalCost,
             userId: req.body.userId,
