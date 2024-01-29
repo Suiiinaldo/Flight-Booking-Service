@@ -5,6 +5,8 @@ const AppError = require("../utils/errors/app-error");
 const { Enums } = require("../utils/common");
 const { BOOKED, CANCELLED } = Enums.BOOKING_STATUS;
 const { Op } = require("sequelize");
+const axios = require("axios");
+const { ServerConfig } = require("../config");
 
 class BookingRepository extends CrudRepository{
     constructor(){
@@ -34,13 +36,33 @@ class BookingRepository extends CrudRepository{
     }
 
     async cancelOldBookings(timestamp){
-        /*TODO: 
-         * The flights which are getting cancelled due to cron job are not freeing up 
-           the seats in the flights table, i.e, the cancelled flights should leave their 
-           allocated seats and in table the seats should increase by the corresponding noOfSeats.
-         * You can use findAll with where clause before updating the status and put a axios patch 
-           request to all the flightIds to increase the seats.
-        */
+        const bookings = await Booking.findAll({
+            where: {
+                [Op.and]:[
+                    {
+                        createdAt: {
+                            [Op.lt] : timestamp
+                        }
+                    },
+                    {
+                        status : {
+                            [Op.ne] : BOOKED,
+                        }
+                    },
+                    {
+                        status: {
+                            [Op.ne] : CANCELLED,
+                        }
+                    }
+                ]
+            }
+        });
+        bookings.forEach(async (Booking) => {
+            await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${Booking.dataValues.flightId}/seats`,{
+                seats: Booking.dataValues.noOfSeats,
+                dec: 0,
+            });
+        });
         const response = await Booking.update({status: CANCELLED},{
             where: {
                 [Op.and]:[
