@@ -9,6 +9,7 @@
   "author": "Prakhar Singh",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^0.10.3",
     "axios": "^1.6.5",
     "cron": "^3.1.6",
     "dotenv": "^16.3.1",

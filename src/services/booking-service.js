@@ -3,7 +3,7 @@ const axios  = require("axios");
 const { BookingRepository } = require("../repositories");
 
 const db = require("../models");
-const { ServerConfig } = require("../config");
+const { ServerConfig, Queue } = require("../config");
 const AppError = require("../utils/errors/app-error");
 const { StatusCodes } = require("http-status-codes");
 const bookingRepository = new BookingRepository();
@@ -36,9 +36,12 @@ async function createBooking(data){
 async function makePayment(data){
     const transaction = await db.sequelize.transaction();
     try {
-        const bookingDetails = await bookingRepository.get(data.userId,transaction);
+        const bookingDetails = await bookingRepository.get(data.bookingId,transaction);
         if(bookingDetails.status == CANCELLED){
             throw new AppError("The booking has expired", StatusCodes.BAD_REQUEST);
+        }
+        if(bookingDetails.status == BOOKED){
+            throw new AppError("Cannot retry on Booked Ticket", StatusCodes.BAD_REQUEST);
         }
         const bookingTime = new Date(bookingDetails.createdAt);
         const currentTime = new Date();
@@ -55,8 +58,13 @@ async function makePayment(data){
         }
 
         //Now we assume the booking is done
-
         await bookingRepository.update(data.bookingId, { status: BOOKED}, { transaction: transaction});
+        Queue.sendData({
+            recepientEmail: "prakhar.pratap03@gmail.com",
+            subject: "Flight Successfully Booked",
+            content: `Booking Successfully Created for Booking ID: ${data.bookingId}`,
+
+        });
         await transaction.commit();
     } catch (error) {
         await transaction.rollback();
