@@ -1,6 +1,8 @@
 const { BookingService } = require("../services");
 const { StatusCodes} = require("http-status-codes");
-const { SuccessResponse, ErrorResponse} = require("../utils/common")
+const { SuccessResponse, ErrorResponse} = require("../utils/common");
+const { ServerConfig } = require("../config");
+const jwt = require("jsonwebtoken");
 
 /*
  * POST : /bookings 
@@ -30,10 +32,13 @@ async function createBooking(req,res){
 async function makePayment(req,res){
     try {
         // console.log("Inside controller")
+        const recepientUser =jwt.verify(req.headers['x-access-token'],ServerConfig.JWT_SECRET);
+        // console.log(recepientUser);
         const response = await BookingService.makePayment({
             totalCost: req.body.totalCost,
             userId: req.body.userId,
             bookingId: req.body.bookingId,
+            email: recepientUser.email,
         })
         SuccessResponse.data = response;
         return res

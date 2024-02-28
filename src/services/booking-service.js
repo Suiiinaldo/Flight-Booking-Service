@@ -1,7 +1,6 @@
 const axios  = require("axios");
 
 const { BookingRepository } = require("../repositories");
-
 const db = require("../models");
 const { ServerConfig, Queue } = require("../config");
 const AppError = require("../utils/errors/app-error");
@@ -60,7 +59,7 @@ async function makePayment(data){
         //Now we assume the booking is done
         await bookingRepository.update(data.bookingId, { status: BOOKED}, { transaction: transaction});
         Queue.sendData({
-            recepientEmail: "prakhar.pratap03@gmail.com",
+            recepientEmail: data.email,
             subject: "Flight Successfully Booked",
             content: `Booking Successfully Created for Booking ID: ${data.bookingId}`,
 
